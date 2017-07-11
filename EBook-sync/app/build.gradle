@@ -30,4 +30,5 @@ dependencies {
     testCompile 'junit:junit:4.12'
     compile files('build/epublib-core-latest.jar')
     compile files('build/slf4j-android-1.6.1-RC1.jar')
+    compile files('build/skyepub.jar')
 }

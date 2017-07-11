@@ -5,10 +5,19 @@ import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
+import android.text.Html;
+import android.text.method.ScrollingMovementMethod;
+import android.util.DisplayMetrics;
 import android.view.View;
 import android.view.Menu;
 import android.view.MenuItem;
 
+import com.skytree.epub.*;
+
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.List;
@@ -23,6 +32,7 @@ import android.view.MenuItem;
 import android.content.Context;
 import android.content.Intent;
 import nl.siegmann.epublib.domain.Book;
+import nl.siegmann.epublib.domain.Resource;
 import nl.siegmann.epublib.domain.TOCReference;
 import nl.siegmann.epublib.epub.EpubReader;
 import android.content.res.AssetManager;
@@ -30,20 +40,29 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.os.Bundle;
 import android.util.Log;
+import android.webkit.WebView;
+import android.widget.Button;
 import android.widget.TextView;
+import android.widget.RelativeLayout;
+import android.widget.Toast;
+
+import org.xml.sax.ContentHandler;
+
+import static com.example.student.ebook_sync.R.id.toolbar;
 
 
 public class Viewer extends AppCompatActivity {
+
+    ReflowableControl rv;       // ReflowableControl
+    RelativeLayout ePubView;    // Basic View of Activity.
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_viewer);
-        Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
-        setSupportActionBar(toolbar);
         final Context context = this;
         TextView textViewer = (TextView) findViewById(R.id.myTextViewer);
-
+        textViewer.setMovementMethod(new ScrollingMovementMethod());
 
 
         FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
@@ -57,20 +76,86 @@ public class Viewer extends AppCompatActivity {
             }
         });
 
+        WebView webview = (WebView) findViewById(R.id.myWebViewer);
         AssetManager assetManager = getAssets();
         try {
             // find InputStream for book
             InputStream epubInputStream = assetManager
-                    .open("/storage/emulated/0/Download/Metamorphosis-jackson.epub");
+                    .open("Metamorphosis-jackson.epub");
 
             // Load Book from inputStream
             Book book = (new EpubReader()).readEpub(epubInputStream);
 
             // Log the book's authors
-            Log.i("epublib", "author(s): " + book.getMetadata().getAuthors());
+            Log.i("author", " : " + book.getMetadata().getAuthors());
 
             // Log the book's title
-            Log.i("epublib", "title: " + book.getTitle());
+            Log.i("title", " : " + book.getTitle());
+
+            /* Log the book's coverimage property */
+            // Bitmap coverImage =
+            // BitmapFactory.decodeStream(book.getCoverImage()
+            // .getInputStream());
+            // Log.i("epublib", "Coverimage is " + coverImage.getWidth() +
+            // " by "
+            // + coverImage.getHeight() + " pixels");
+
+            // Log the tale of contents
+            //logTableOfContents(book.getTableOfContents().getTocReferences(), 0);
+            textViewer.setText(new String(book.getContents().get(3).getData()));
+            webview.loadDataWithBaseURL("", new String(book.getContents().get(3).getData()), "text/html", "UTF-8", "");
+        } catch (IOException e) {
+            Log.e("epublib exception", e.getMessage());
+            Toast.makeText(getApplicationContext(), "IOException caught!",
+                    Toast.LENGTH_SHORT).show();
+        } catch (Exception e){
+            Log.e("epublib exception", e.getMessage());
+            Toast.makeText(getApplicationContext(), "Exception caught!", Toast.LENGTH_SHORT).show();
+        }
+
+        String javascrips = "";
+        try {
+            // InputStream input = getResources().openRawResource(R.raw.lights);
+            InputStream input = this.getAssets().open(
+                    "Metamorphosis-jackson.epub");
+
+            int size;
+            size = input.available();
+            byte[] buffer = new byte[size];
+            input.read(buffer);
+            input.close();
+            // byte buffer into a string
+            javascrips = new String(buffer);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        // String html = readFile(is);
+
+        //webview.loadDataWithBaseURL(null, javascrips, "application/epub+zip", "UTF-8", null);
+        //webview.loadDataWithBaseURL("", finalstr, "text/html", "UTF-8", "");
+        // "application/epub+zip"
+    }
+
+
+
+    private void printBookData(Book neededbook){
+        // TODO implement an option to switch between books (currently opens a stub boob)
+        AssetManager assetManager = getAssets();
+        TextView textViewer = (TextView) findViewById(R.id.myTextViewer);
+        try {
+            // find InputStream for book
+            InputStream epubInputStream = assetManager.open("Metamorphosis-jackson.epub");
+            //InputStream epubInputStream = assetManager.open("The-Problems-of-Philosophy-LewisTheme.epub");
+
+            // Load Book from inputStream
+            Book book = (new EpubReader()).readEpub(epubInputStream);
+
+            String text = "";
+            // Log the book's authors
+            text = "author(s): " + book.getMetadata().getAuthors() + "\n";
+
+            // Log the book's title
+            text += "title: " + book.getTitle() + "\n";
 
             // Log the book's coverimage property
             Bitmap coverImage = BitmapFactory.decodeStream(book.getCoverImage()
@@ -78,18 +163,21 @@ public class Viewer extends AppCompatActivity {
             Log.i("epublib", "Coverimage is " + coverImage.getWidth() + " by "
                     + coverImage.getHeight() + " pixels");
 
+            textViewer.setText(text);
             // Log the tale of contents
-            logTableOfContents(book.getTableOfContents().getTocReferences(), 0);
+            //printTableOfContents(book.getTableOfContents().getTocReferences(), 0);
         } catch (IOException e) {
             Log.e("epublib", e.getMessage());
             textViewer.setText("IO Exception while trying to read the file!");
         }
     }
 
-    private void logTableOfContents(List<TOCReference> tocReferences, int depth) {
+    private void printTableOfContents(List<TOCReference> tocReferences, int depth) {
         if (tocReferences == null) {
             return;
         }
+        TextView textViewer = (TextView) findViewById(R.id.myTextViewer);
+        String txt = (String) textViewer.getText();
         for (TOCReference tocReference : tocReferences) {
             StringBuilder tocString = new StringBuilder();
             for (int i = 0; i < depth; i++) {
@@ -97,12 +185,38 @@ public class Viewer extends AppCompatActivity {
             }
             tocString.append(tocReference.getTitle());
             Log.i("epublib", tocString.toString());
-            TextView textViewer = (TextView) findViewById(R.id.myTextViewer);
-            textViewer.setText(tocString);
+            txt += tocString + "\n";
+            textViewer.setText(txt);
 
-            logTableOfContents(tocReference.getChildren(), depth + 1);
+            printTableOfContents(tocReference.getChildren(), depth + 1);
         }
     }
+
+    private void printBook(Book thebook){
+        // TODO implement an option to switch between books (currently opens a stub boob)
+        AssetManager assetManager = getAssets();
+        TextView textViewer = (TextView) findViewById(R.id.myTextViewer);
+        String text = "";
+        Book book;
+        List<Resource> resources;
+        EpubReader epubReader = new EpubReader();
+        try {
+            // read epub file
+            //book = epubReader.readEpub(new FileInputStream("/storage/emulated/0/Download/Metamorphosis-jackson.epub"));
+            book = (new EpubReader()).readEpub(assetManager.open("Metamorphosis-jackson.epub"));
+            resources = book.getContents();
+            for(Resource r : resources) {
+                text += r.toString() + "\n";
+            }
+            textViewer.setText(text);
+
+        } catch(NullPointerException e) {
+            textViewer.setText("NullPointerException caught while trying to read or print a book!");
+        } catch(Exception e){
+            textViewer.setText("Exception caught while trying to read or print a book!");
+        }
+    }
+
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
@@ -124,5 +238,6 @@ public class Viewer extends AppCompatActivity {
         }
         return super.onOptionsItemSelected(item);
     }
+
 
 }
