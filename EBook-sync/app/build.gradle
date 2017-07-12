@@ -31,4 +31,5 @@ dependencies {
     compile files('build/epublib-core-latest.jar')
     compile files('build/slf4j-android-1.6.1-RC1.jar')
     compile files('build/skyepub.jar')
+    compile files('build/android-async-http-1.4.4.jar')
 }

@@ -1,0 +1,10 @@
+[
+    {
+        "merged": "/home/student/workspace/eBook-sync-Android/MySQLSQLLiteSync/app/build/intermediates/res/merged/debug/drawable-xhdpi/ic_action_refresh.png",
+        "source": "/home/student/workspace/eBook-sync-Android/MySQLSQLLiteSync/app/src/main/res/drawable-xhdpi/ic_action_refresh.png"
+    },
+    {
+        "merged": "/home/student/workspace/eBook-sync-Android/MySQLSQLLiteSync/app/build/intermediates/res/merged/debug/drawable-xhdpi/ic_launcher.png",
+        "source": "/home/student/workspace/eBook-sync-Android/MySQLSQLLiteSync/app/src/main/res/drawable-xhdpi/ic_launcher.png"
+    }
+]
