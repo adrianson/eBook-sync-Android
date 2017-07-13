@@ -1,0 +1,9 @@
+<component name="libraryTable">
+  <library name="skyepub">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/app/src/main/java/skyepub.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>

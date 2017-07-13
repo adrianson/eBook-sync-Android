@@ -1,0 +1,10 @@
+[
+    {
+        "merged": "/home/student/workspace/eBook-sync-Android/SimpleDemo/app/build/intermediates/res/merged/debug/drawable-hdpi/ic_launcher.png",
+        "source": "/home/student/workspace/eBook-sync-Android/SimpleDemo/app/src/main/res/drawable-hdpi/ic_launcher.png"
+    },
+    {
+        "merged": "/home/student/workspace/eBook-sync-Android/SimpleDemo/C:\\Users\\Andris\\workspace\\eBook-sync-Android\\SimpleDemo\\app\\build\\intermediates\\res\\merged\\debug\\drawable-hdpi\\ic_launcher.png",
+        "source": "/home/student/workspace/eBook-sync-Android/SimpleDemo/C:\\Users\\Andris\\workspace\\eBook-sync-Android\\SimpleDemo\\app\\src\\main\\res\\drawable-hdpi\\ic_launcher.png"
+    }
+]

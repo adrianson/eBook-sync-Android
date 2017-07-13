@@ -1,0 +1,4 @@
+#Tue Jul 11 21:48:14 EEST 2017
+base.0=C\:\\Users\\Andris\\workspace\\eBook-sync-Android\\SimpleDemo\\app\\build\\intermediates\\transforms\\dex\\debug\\folders\\1000\\5\\slice_0
+renamed.0=classes.dex
+file.0=C\:\\Users\\Andris\\workspace\\eBook-sync-Android\\SimpleDemo\\app\\build\\intermediates\\transforms\\dex\\debug\\folders\\1000\\5\\slice_0\\classes.dex

@@ -1,0 +1,18 @@
+#Internal package file, do not edit.
+#Tue Jul 11 21:48:08 EEST 2017
+1.base=C\:\\Users\\Andris\\workspace\\eBook-sync-Android\\SimpleDemo\\app\\build\\intermediates\\res\\resources-debug.ap_
+4.file=C\:\\Users\\Andris\\workspace\\eBook-sync-Android\\SimpleDemo\\app\\build\\intermediates\\assets\\debug\\Alice.epub
+1.file=C\:\\Users\\Andris\\workspace\\eBook-sync-Android\\SimpleDemo\\app\\build\\intermediates\\res\\resources-debug.ap_\\AndroidManifest.xml
+4.set=ASSET
+2.base=C\:\\Users\\Andris\\workspace\\eBook-sync-Android\\SimpleDemo\\app\\build\\intermediates\\res\\resources-debug.ap_
+3.set=ANDROID_RESOURCE
+2.set=ANDROID_RESOURCE
+2.file=C\:\\Users\\Andris\\workspace\\eBook-sync-Android\\SimpleDemo\\app\\build\\intermediates\\res\\resources-debug.ap_\\res\\menu\\main.xml
+count=5
+1.set=ANDROID_RESOURCE
+3.base=C\:\\Users\\Andris\\workspace\\eBook-sync-Android\\SimpleDemo\\app\\build\\intermediates\\res\\resources-debug.ap_
+0.set=ANDROID_RESOURCE
+0.base=C\:\\Users\\Andris\\workspace\\eBook-sync-Android\\SimpleDemo\\app\\build\\intermediates\\res\\resources-debug.ap_
+3.file=C\:\\Users\\Andris\\workspace\\eBook-sync-Android\\SimpleDemo\\app\\build\\intermediates\\res\\resources-debug.ap_\\res\\drawable-xxhdpi-v4\\ic_launcher.png
+0.file=C\:\\Users\\Andris\\workspace\\eBook-sync-Android\\SimpleDemo\\app\\build\\intermediates\\res\\resources-debug.ap_\\resources.arsc
+4.base=C\:\\Users\\Andris\\workspace\\eBook-sync-Android\\SimpleDemo\\app\\build\\intermediates\\assets\\debug

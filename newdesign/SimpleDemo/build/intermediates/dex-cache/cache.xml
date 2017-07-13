@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+<items version="2" >
+
+    <item
+        is-multidex="false"
+        jar="C:\Users\Andris\workspace\eBook-sync-Android\SimpleDemo\app\src\main\java\skyepub.jar"
+        jumboMode="false"
+        optimize="true"
+        revision="26.0.0"
+        sha1="26d9e2e600c7ec24f5424c04217ef4aa3a749ae1">
+        <dex dex="C:\Users\Andris\workspace\eBook-sync-Android\SimpleDemo\app\build\intermediates\pre-dexed\debug\skyepub_19f9e4089c3362822398e7e886bea51b54d11e48.jar" />
+    </item>
+    <item
+        is-multidex="false"
+        jar="C:\Users\Andris\AppData\Local\Android\sdk\extras\android\m2repository\com\android\support\support-v4\19.1.0\support-v4-19.1.0.jar"
+        jumboMode="false"
+        optimize="true"
+        revision="26.0.0"
+        sha1="85f201b380937e61a9dce6ca90ccf6872abbfb67">
+        <dex dex="C:\Users\Andris\workspace\eBook-sync-Android\SimpleDemo\app\build\intermediates\pre-dexed\debug\support-v4-19.1.0_5c2bb2c20f49b6bc3a2cce3fc0702f80c8c76d95.jar" />
+    </item>
+    <item
+        is-multidex="true"
+        jar="C:\Users\Andris\workspace\eBook-sync-Android\SimpleDemo\app\build\intermediates\incremental-classes\debug\instant-run-bootstrap.jar"
+        jumboMode="true"
+        optimize="true"
+        revision="26.0.0"
+        sha1="edd4e01d80bced7ce6bcf645b0fe587535a1051b">
+        <dex dex="C:\Users\Andris\workspace\eBook-sync-Android\SimpleDemo\app\build\intermediates\transforms\dex\debug\folders\1000\10000\instant-run-bootstrap_dc340796d9089f515473f4a60a57ce25e8318be4\classes.dex" />
+    </item>
+    <item
+        is-multidex="true"
+        jar="C:\Users\Andris\workspace\eBook-sync-Android\SimpleDemo\app\src\main\java\skyepub.jar"
+        jumboMode="true"
+        optimize="true"
+        revision="26.0.0"
+        sha1="26d9e2e600c7ec24f5424c04217ef4aa3a749ae1">
+        <dex dex="C:\Users\Andris\workspace\eBook-sync-Android\SimpleDemo\app\build\intermediates\transforms\dex\debug\folders\1000\2\skyepub_19f9e4089c3362822398e7e886bea51b54d11e48\classes.dex" />
+    </item>
+    <item
+        is-multidex="true"
+        jar="C:\Users\Andris\workspace\eBook-sync-Android\SimpleDemo\app\build\intermediates\incremental-runtime-classes\debug\instant-run.jar"
+        jumboMode="true"
+        optimize="true"
+        revision="26.0.0"
+        sha1="3be78ebc2706b2e1fe2f12d5726887a92d6c183b">
+        <dex dex="C:\Users\Andris\workspace\eBook-sync-Android\SimpleDemo\app\build\intermediates\transforms\dex\debug\folders\1000\10000\instant-run_9860a8c6b800aadd06be162e8a68c6de4a82f27f\classes.dex" />
+    </item>
+
+</items>

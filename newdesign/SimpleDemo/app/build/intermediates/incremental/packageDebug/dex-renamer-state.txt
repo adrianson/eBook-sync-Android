@@ -1,0 +1,7 @@
+#Wed Jul 12 00:11:01 EEST 2017
+base.0=C\:\\Users\\Andris\\workspace\\eBook-sync-Android\\SimpleDemo\\app\\build\\intermediates\\transforms\\dex\\debug\\folders\\1000\\10000\\instant-run_9860a8c6b800aadd06be162e8a68c6de4a82f27f
+renamed.1=classes2.dex
+renamed.0=classes.dex
+file.1=C\:\\Users\\Andris\\workspace\\eBook-sync-Android\\SimpleDemo\\app\\build\\intermediates\\transforms\\dex\\debug\\folders\\1000\\10000\\instant-run-bootstrap_dc340796d9089f515473f4a60a57ce25e8318be4\\classes.dex
+base.1=C\:\\Users\\Andris\\workspace\\eBook-sync-Android\\SimpleDemo\\app\\build\\intermediates\\transforms\\dex\\debug\\folders\\1000\\10000\\instant-run-bootstrap_dc340796d9089f515473f4a60a57ce25e8318be4
+file.0=C\:\\Users\\Andris\\workspace\\eBook-sync-Android\\SimpleDemo\\app\\build\\intermediates\\transforms\\dex\\debug\\folders\\1000\\10000\\instant-run_9860a8c6b800aadd06be162e8a68c6de4a82f27f\\classes.dex

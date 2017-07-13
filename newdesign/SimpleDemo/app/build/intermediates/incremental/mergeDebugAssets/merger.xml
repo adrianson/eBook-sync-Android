@@ -1,0 +1,2 @@
+<?xml version="1.0" encoding="utf-8"?>
+<merger version="3"><dataSet config="main"><source path="C:\Users\Andris\workspace\eBook-sync-Android\SimpleDemo\app\src\main\assets"><file name="Alice.epub" path="C:\Users\Andris\workspace\eBook-sync-Android\SimpleDemo\app\src\main\assets\Alice.epub"/></source><source path="C:\Users\Andris\workspace\eBook-sync-Android\SimpleDemo\app\build\generated\assets\shaders\debug"/></dataSet><dataSet config="debug"><source path="C:\Users\Andris\workspace\eBook-sync-Android\SimpleDemo\app\src\debug\assets"/></dataSet></merger>

@@ -1,0 +1,7 @@
+#Tue Jul 11 21:48:14 EEST 2017
+base.0=C\:\\Users\\Andris\\workspace\\eBook-sync-Android\\SimpleDemo\\app\\build\\intermediates\\transforms\\dex\\debug\\folders\\1000\\2\\skyepub_19f9e4089c3362822398e7e886bea51b54d11e48
+renamed.1=classes.dex
+renamed.0=classes2.dex
+file.1=C\:\\Users\\Andris\\workspace\\eBook-sync-Android\\SimpleDemo\\app\\build\\intermediates\\transforms\\dex\\debug\\folders\\1000\\10\\support-v4-19.1.0_5c2bb2c20f49b6bc3a2cce3fc0702f80c8c76d95\\classes.dex
+base.1=C\:\\Users\\Andris\\workspace\\eBook-sync-Android\\SimpleDemo\\app\\build\\intermediates\\transforms\\dex\\debug\\folders\\1000\\10\\support-v4-19.1.0_5c2bb2c20f49b6bc3a2cce3fc0702f80c8c76d95
+file.0=C\:\\Users\\Andris\\workspace\\eBook-sync-Android\\SimpleDemo\\app\\build\\intermediates\\transforms\\dex\\debug\\folders\\1000\\2\\skyepub_19f9e4089c3362822398e7e886bea51b54d11e48\\classes.dex
