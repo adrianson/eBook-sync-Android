@@ -5,11 +5,11 @@ All included libraries are supposed to be added as dependencies after being copi
 
 Latest version is put to "newdesign" folder!
 
-ToDo:
+ToDo: H1
 +Sync w/ DB (& serialization)
 +Font changing feature
 
-FixMe:
+FixMe: H1
 +Crashes in The-Problems-of-Philosophy-LewisTheme.epub when page_position value is around 0.61 (maybe bad file)
 +GUI scalability
 +(optional) Cleaning - only Viewer.java & activity_viewer.xml are being used in their respective folders.
