@@ -3,7 +3,7 @@ All included libraries are supposed to be added as dependencies after being copi
 
 /eBook-sync-Android/used_libraries/aws-android-sdk-2.4.5/lib copy .jar's to  /eBook-sync-Android/EBook-sync/app/libs
 
-*Latest version is put to "newdesign" folder!*
+**Latest version is put to "newdesign" folder!**
 
 ## ToDo:
 ##### +Sync w/ DB (& serialization)
