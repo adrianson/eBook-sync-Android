@@ -30,10 +30,18 @@ import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.View;
 import android.view.View.OnClickListener;
+import android.view.animation.Animation;
+import android.view.animation.AnimationUtils;
+import android.widget.AdapterView;
+import android.widget.ArrayAdapter;
 import android.widget.Button;
+import android.widget.ListView;
 import android.widget.RelativeLayout;
+import android.widget.TextView;
 import android.widget.Toast;
 
+import java.util.ArrayList;
+import java.util.List;
 import 	java.util.zip.ZipInputStream;
 import java.io.BufferedInputStream;
 
@@ -59,6 +67,8 @@ import android.Manifest;
 import android.content.pm.PackageManager;
 import android.widget.ViewFlipper;
 
+import static com.example.student.ebook_sync.R.id.listView;
+
 
 public class Viewer extends Activity {
 
@@ -68,9 +78,14 @@ public class Viewer extends Activity {
     ReflowableControl rv;       // ReflowableControl
     RelativeLayout ePubView, homeView;    // Basic View of Activity.
     ViewFlipper scene;
+    ListView listView;
     FloatingActionButton switchActivityButton1;
     Button markButton;
     Toolbar toolbar;
+    int previouspages;
+    List<String> booksList;
+    List<Double> booksPagePositions;
+    int activeBookId;
     final private String TAG = "EPub";
     Highlights highlights;
     String fileName;
@@ -88,7 +103,6 @@ public class Viewer extends Activity {
 
     protected void makeViewerLayout() {
         highlights = new Highlights();
-        fileName = "Metamorphosis-jackson.epub";
         DisplayMetrics metrics = getResources().getDisplayMetrics();
         float density = metrics.density;
 
@@ -167,7 +181,17 @@ public class Viewer extends Activity {
         debug("onCreate");
         super.onCreate(savedInstanceState);
         verifyStoragePermissions(this);
-        page_position = 0.6;
+        booksList = new ArrayList<String>();
+        booksList.add("Metamorphosis-jackson.epub");
+        booksList.add("The-Problems-of-Philosophy-LewisTheme.epub");
+        booksPagePositions = new ArrayList<Double>();
+        booksPagePositions.add(0.572);
+        booksPagePositions.add(0.572);
+        activeBookId = 0;
+        previouspages = 0;
+        fileName = booksList.get(activeBookId);
+        //fileName = "Metamorphosis-jackson.epub";
+        page_position = booksPagePositions.get(activeBookId);
         this.makeViewerLayout();
         setContentView(R.layout.activity_viewer);
         toolbar = findViewById(R.id.toolbar);
@@ -175,6 +199,30 @@ public class Viewer extends Activity {
         scene = (ViewFlipper) findViewById(R.id.viewFlipper);
         scene.addView(ePubView);
         scene.showNext();
+        listView = (ListView) findViewById(R.id.listView);
+        String []booksForAdapter = new String[booksList.size()];
+        booksList.toArray(booksForAdapter);
+        ArrayAdapter<String> adapter = new ArrayAdapter<String>(this, android.R.layout.simple_list_item_1, android.R.id.text1, booksForAdapter);
+        listView.setAdapter(adapter);
+        listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> parent, View view,
+                                    int position, long id) {
+
+                scene.removeView(ePubView);
+                booksPagePositions.set(activeBookId, page_position);
+                activeBookId = position;
+                page_position = booksPagePositions.get(activeBookId);
+                fileName = booksList.get(activeBookId);
+                makeViewerLayout();
+                scene.addView(ePubView);
+                reading = true;
+                toolbar.setTitle("Loading... ");
+                scene.showNext();
+            }
+
+        });
+
 
         FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.floatingActionButton);
         fab.setOnClickListener(new View.OnClickListener() {
@@ -182,16 +230,29 @@ public class Viewer extends Activity {
             public void onClick(View view) {
                 if(reading) {
                     Snackbar.make(view, "FAB: Switched to Home(a.k.a. Settings)", Snackbar.LENGTH_SHORT).setAction("Action", null).show();
+                    toolbar.setTitle("BOOKS LIST");
                     reading = false;
                 } else {
                     Snackbar.make(view, "FAB: Switched to Viewer(a.k.a. eBook-Reader)", Snackbar.LENGTH_SHORT).setAction("Action", null).show();
+                    setNewTitle();
                     reading = true;
+
                 }
                 scene.showNext();
             }
         });
     }
 
+
+    private void setNewTitle() {
+        String newtitle = (rv.getPageIndexInChapter() + previouspages) +
+                "  " + rv.getChapterTitle(rv.getChapterIndexByPagePositionInBook(page_position));
+        if(newtitle.length() > 25){
+            toolbar.setTitle(newtitle.substring(0, 27) + "...");
+        } else {
+            toolbar.setTitle(newtitle);
+        }
+    }
 
     private PageMovedListener pmlistener = new PageMovedListener() {
         @Override
@@ -200,12 +261,14 @@ public class Viewer extends Activity {
             Snackbar.make(ePubView, "chapterIndx = " + rv.getChapterIndexByPagePositionInBook(page_position) +
                     "   |   pageIndx = " + rv.getPageIndexInBook() +
                     "   |   pagePos = " + pageInformation.pagePositionInBook ,Snackbar.LENGTH_LONG).setAction("Action", null).show();
+            setNewTitle();
         }
 
         @Override
         public void onChapterLoaded(int i) {
             //toolbar.setTitle(toolbar.getTitle() + ": " + rv.getChapterTitle(i));
-            toolbar.setTitle(rv.getChapterTitle(i));
+            //toolbar.setTitle(rv.getChapterTitle(i) + " : " + rv.getPageIndexInBookByPagePositionInBook(page_position));
+
         }
 
         @Override

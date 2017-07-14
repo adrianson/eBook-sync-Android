@@ -36,7 +36,10 @@
             android:id="@+id/listView"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:background="@android:color/holo_purple" />
+            android:background="@android:color/background_light"
+            android:divider="@android:drawable/stat_sys_phone_call_forward"
+            android:dividerHeight="1dp"/>
+
 
     </ViewFlipper>
 
@@ -44,13 +47,15 @@
         android:id="@+id/floatingActionButton"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:clickable="true"
-        app:fabSize="mini"
-        app:srcCompat="?android:attr/actionModeCopyDrawable"
         android:layout_marginRight="8dp"
+        android:layout_marginTop="8dp"
+        android:clickable="true"
+        app:backgroundTint="@android:color/holo_blue_dark"
+        app:elevation="4dp"
+        app:fabSize="mini"
         app:layout_constraintRight_toRightOf="@+id/toolbar"
         app:layout_constraintTop_toTopOf="@+id/toolbar"
-        android:layout_marginTop="8dp" />
+        app:srcCompat="?android:attr/actionModeCopyDrawable" />
 
 
 </android.support.constraint.ConstraintLayout>
