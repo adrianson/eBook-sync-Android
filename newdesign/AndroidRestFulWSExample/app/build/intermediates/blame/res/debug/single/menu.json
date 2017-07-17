@@ -1,0 +1,14 @@
+[
+    {
+        "merged": "/home/student/AndroidStudioProjects/eBook-sync-Android/AndroidRestFulWSExample/app/build/intermediates/res/merged/debug/menu/home.xml",
+        "source": "/home/student/AndroidStudioProjects/eBook-sync-Android/AndroidRestFulWSExample/app/src/main/res/menu/home.xml"
+    },
+    {
+        "merged": "/home/student/AndroidStudioProjects/eBook-sync-Android/AndroidRestFulWSExample/app/build/intermediates/res/merged/debug/menu/main.xml",
+        "source": "/home/student/AndroidStudioProjects/eBook-sync-Android/AndroidRestFulWSExample/app/src/main/res/menu/main.xml"
+    },
+    {
+        "merged": "/home/student/AndroidStudioProjects/eBook-sync-Android/AndroidRestFulWSExample/app/build/intermediates/res/merged/debug/menu/login.xml",
+        "source": "/home/student/AndroidStudioProjects/eBook-sync-Android/AndroidRestFulWSExample/app/src/main/res/menu/login.xml"
+    }
+]

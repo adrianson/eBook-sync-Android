@@ -23,6 +23,7 @@ import com.skytree.epub.StateListener;
 import android.app.Activity;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
+import android.graphics.Color;
 import android.graphics.Rect;
 import android.os.Bundle;
 import android.os.Environment;
@@ -30,6 +31,7 @@ import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.View;
 import android.view.View.OnClickListener;
+import android.view.ViewGroup;
 import android.view.animation.Animation;
 import android.view.animation.AnimationUtils;
 import android.widget.AdapterView;
@@ -40,6 +42,9 @@ import android.widget.RelativeLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 import 	java.util.zip.ZipInputStream;
@@ -68,6 +73,21 @@ import android.content.pm.PackageManager;
 import android.widget.ViewFlipper;
 
 import static com.example.student.ebook_sync.R.id.listView;
+import static com.example.student.ebook_sync.R.id.parent;
+
+class Book implements Serializable {
+    int id;
+    String name;
+    double line;
+    boolean exists;
+
+    Book(int id, String name, double line, boolean exists) {
+        this.id = id;
+        this.name = name;
+        this.line = line;
+        this.exists = exists;
+    }
+}
 
 
 public class Viewer extends Activity {
@@ -78,13 +98,17 @@ public class Viewer extends Activity {
     ReflowableControl rv;       // ReflowableControl
     RelativeLayout ePubView, homeView;    // Basic View of Activity.
     ViewFlipper scene;
-    ListView listView;
+    ListView listView, filesView;
     FloatingActionButton switchActivityButton1;
     Button markButton;
     Toolbar toolbar;
     int previouspages;
     List<String> booksList;
+    List<String> booksListForFilesView;
     List<Double> booksPagePositions;
+    List<Book> booksListDat;
+    List<String> fontList;
+    int fontindex;
     int activeBookId;
     final private String TAG = "EPub";
     Highlights highlights;
@@ -95,7 +119,9 @@ public class Viewer extends Activity {
             Manifest.permission.READ_EXTERNAL_STORAGE,
             Manifest.permission.WRITE_EXTERNAL_STORAGE
     };
-
+    FloatingActionButton fab;
+    FloatingActionButton fab2;
+    boolean sceneIsVisible;
 
     public static int calcDIP(Context context, float px){
         return (int)(16 * context.getResources().getDisplayMetrics().density);
@@ -120,9 +146,9 @@ public class Viewer extends Activity {
         String baseDirectory = getFilesDir().getAbsolutePath() + "/books/";
         Log.i("basefile", baseDirectory);
 
-        copyToDevice(fileName);
         rv.setBaseDirectory(baseDirectory);
-        rv.setBookName(fileName);
+        //copyToDevice(fileName);
+        rv.setBookName(booksList.get(activeBookId));
 //        rv.setLicenseKey("0000-0000-0000-0000");
         rv.setDoublePagedForLandscape(true);
         rv.setFont("TimesRoman", 20);
@@ -177,54 +203,171 @@ public class Viewer extends Activity {
     }
 
 
+
     public void onCreate(Bundle savedInstanceState) {
         debug("onCreate");
         super.onCreate(savedInstanceState);
         verifyStoragePermissions(this);
         booksList = new ArrayList<String>();
-        booksList.add("Metamorphosis-jackson.epub");
-        booksList.add("The-Problems-of-Philosophy-LewisTheme.epub");
+        booksListForFilesView = new ArrayList<String>();
+        booksListDat = new ArrayList<Book>();
+        //booksList.add("Metamorphosis-jackson.epub");
+        //booksList.add("The-Problems-of-Philosophy-LewisTheme.epub");
         booksPagePositions = new ArrayList<Double>();
+        /*
         booksPagePositions.add(0.572);
         booksPagePositions.add(0.572);
+        booksPagePositions.add(0.572);
+        booksPagePositions.add(0.572);
+        */
         activeBookId = 0;
         previouspages = 0;
-        fileName = booksList.get(activeBookId);
+        //fileName = booksList.get(activeBookId);
         //fileName = "Metamorphosis-jackson.epub";
-        page_position = booksPagePositions.get(activeBookId);
+        //page_position = booksPagePositions.get(activeBookId);
+        this.copyToDevice();
+        try { // Sets up a temporary Books.dat file
+            this.makeStubBooksDatFile();
+        } catch (IOException e) {
+            Log.e("exception", "IOException trying to makestubbookstdat", e);
+        }
+        this.readBooksDat(booksListDat);
         this.makeViewerLayout();
         setContentView(R.layout.activity_viewer);
         toolbar = findViewById(R.id.toolbar);
         toolbar.setTitle("Loading...");
+        sceneIsVisible = true;
         scene = (ViewFlipper) findViewById(R.id.viewFlipper);
         scene.addView(ePubView);
         scene.showNext();
+        fontList = new ArrayList<String>();
+        fontList.add("TimesRoman");
+        fontList.add("Arial");
+        fontList.add("Cooper");
+        fontList.add("Impress");
+        filesView = (ListView) findViewById(R.id.filesView);
         listView = (ListView) findViewById(R.id.listView);
         String []booksForAdapter = new String[booksList.size()];
         booksList.toArray(booksForAdapter);
-        ArrayAdapter<String> adapter = new ArrayAdapter<String>(this, android.R.layout.simple_list_item_1, android.R.id.text1, booksForAdapter);
-        listView.setAdapter(adapter);
+        //ArrayAdapter<String> adapter = new ArrayAdapter<String>(this, android.R.layout.simple_list_item_1, android.R.id.text1, booksForAdapter);
+        listView.setAdapter(new ArrayAdapter<String>(this, android.R.layout.simple_list_item_1, android.R.id.text1, booksForAdapter){
+            @Override
+            public View getView(int position, View convertView, ViewGroup parent) {
+                View row = super.getView(position, convertView, parent);
+
+                if(getItem(position).substring(getItem(position).length()-5, getItem(position).length()).equals(".epub"))
+                {
+                    row.setBackgroundColor (Color.RED); // some color
+                    //convertView.setClickable(false);
+                }
+                else
+                {
+                    // default state
+                    row.setBackgroundColor (Color.WHITE); // default coloe
+                }
+
+                return row;
+            }
+        });
+
         listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> parent, View view,
                                     int position, long id) {
-
-                scene.removeView(ePubView);
-                booksPagePositions.set(activeBookId, page_position);
-                activeBookId = position;
-                page_position = booksPagePositions.get(activeBookId);
-                fileName = booksList.get(activeBookId);
-                makeViewerLayout();
-                scene.addView(ePubView);
-                reading = true;
-                toolbar.setTitle("Loading... ");
-                scene.showNext();
+                String tmp = listView.getAdapter().getItem(position).toString();
+                if(!tmp.substring(tmp.length()-5, tmp.length()).equals(".epub")) {
+                    scene.removeView(ePubView);
+                    booksPagePositions.set(activeBookId, page_position);
+                    activeBookId = position;
+                    page_position = booksPagePositions.get(activeBookId);
+                    fileName = booksList.get(activeBookId);
+                    makeViewerLayout();
+                    scene.addView(ePubView);
+                    reading = true;
+                    toolbar.setTitle("Loading... ");
+                    scene.showNext();
+                    fab2.setVisibility(View.VISIBLE);
+                } else {
+                    Toast toast = Toast.makeText(context , "There is no such book on the device :(", Toast.LENGTH_SHORT);
+                    toast.show();
+                }
             }
 
         });
 
+        fab2 = (FloatingActionButton) findViewById(R.id.floatingActionButton2);
+        fab2.setVisibility(View.INVISIBLE);
+        fab2.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                if(sceneIsVisible) {
+                    scene.setVisibility(View.INVISIBLE);
+                    filesView.setVisibility(View.VISIBLE);
+                    sceneIsVisible = false;
+                    getEbooksOnDevice();
+                    String []booksForAdapter = new String[booksListForFilesView.size()];
+                    booksListForFilesView.toArray(booksForAdapter);
+                    ArrayAdapter<String> adapter = new ArrayAdapter<String>(context, android.R.layout.simple_list_item_1, android.R.id.text1, booksForAdapter);
+                    filesView.setAdapter(adapter);
 
-        FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.floatingActionButton);
+                    filesView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+                        @Override
+                        public void onItemClick(AdapterView<?> parent, View view,
+                                                int position, long id) {
+                            String tmp = filesView.getAdapter().getItem(position).toString();
+                            try
+                            {
+                                String baseDirectory = Environment.getExternalStorageDirectory().toString();
+
+                                File target = new File(tmp);
+                                String fileName = tmp;
+                                //Log.d("Files", "FileName:" + files[i].getName());
+                                if(target.isFile() && target.getName().substring(target.getName().length() - 5,
+                                        target.getName().length()).equals(".epub") && checkForDuplicate(fileName)) {
+                                    fileName = target.getName();
+                                    String pureName = removeExtention(fileName);
+                                    String targetDirectory = getFilesDir().getAbsolutePath() + "/books/" + pureName;
+                                    Log.i("trgetdir", targetDirectory);
+                                    File dir = new File(targetDirectory);
+                                    dir.mkdirs();
+                                    String targetPath = targetDirectory + "/" + fileName;
+                                    Log.i("copyfile", baseDirectory + "/" + fileName);
+                                    InputStream localInputStream = new FileInputStream(new File(baseDirectory + "/" + fileName));
+                                    FileOutputStream localFileOutputStream = new FileOutputStream(targetPath);
+                                    byte[] arrayOfByte = new byte[1024];
+                                    int offset;
+                                    while ((offset = localInputStream.read(arrayOfByte)) > 0) {
+                                        localFileOutputStream.write(arrayOfByte, 0, offset);
+                                    }
+                                    localFileOutputStream.close();
+                                    localInputStream.close();
+                                    Log.d(TAG, fileName + " copied to phone");
+
+                                    booksList.add(fileName);
+                                } else {
+                                    Toast toast = Toast.makeText(context , "It's not a vaible file :(", Toast.LENGTH_SHORT);
+                                    toast.show();
+                                }
+
+                            }
+                            catch (IOException localIOException)
+                            {
+                                localIOException.printStackTrace();
+                                Log.d(TAG, "failed to copy");
+                                return;
+                            }
+                        }
+
+                    });
+                } else {
+                    scene.setVisibility(View.VISIBLE);
+                    filesView.setVisibility(View.INVISIBLE);
+                    sceneIsVisible = true;
+                }
+            }
+        });
+
+        fab = (FloatingActionButton) findViewById(R.id.floatingActionButton);
         fab.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
@@ -232,26 +375,36 @@ public class Viewer extends Activity {
                     Snackbar.make(view, "FAB: Switched to Home(a.k.a. Settings)", Snackbar.LENGTH_SHORT).setAction("Action", null).show();
                     toolbar.setTitle("BOOKS LIST");
                     reading = false;
+                    fab2.setVisibility(View.VISIBLE);
                 } else {
                     Snackbar.make(view, "FAB: Switched to Viewer(a.k.a. eBook-Reader)", Snackbar.LENGTH_SHORT).setAction("Action", null).show();
                     setNewTitle();
                     reading = true;
-
+                    fab2.setVisibility(View.INVISIBLE);
                 }
                 scene.showNext();
             }
         });
+
     }
 
 
     private void setNewTitle() {
         String newtitle = (rv.getPageIndexInChapter() + previouspages) +
                 "  " + rv.getChapterTitle(rv.getChapterIndexByPagePositionInBook(page_position));
-        if(newtitle.length() > 25){
-            toolbar.setTitle(newtitle.substring(0, 27) + "...");
+        if(newtitle.length() > 23){
+            toolbar.setTitle(newtitle.substring(0, 23) + "...");
         } else {
             toolbar.setTitle(newtitle);
         }
+    }
+
+    public boolean checkForDuplicate(String tmp){
+        for(String s : booksList){
+            if(s.equals(tmp))
+                return false;
+        }
+        return true;
     }
 
     private PageMovedListener pmlistener = new PageMovedListener() {
@@ -277,6 +430,136 @@ public class Viewer extends Activity {
         }
     };
 
+
+    public void copyToDevice() {
+        try
+        {
+            String baseDirectory = Environment.getExternalStorageDirectory().toString();
+
+            File directory = new File(baseDirectory);
+            File[] files = directory.listFiles();
+            String fileName;
+            for (int i = 0; i < files.length; i++)
+            {
+                //Log.d("Files", "FileName:" + files[i].getName());
+                if(files[i].isFile() && files[i].getName().substring(files[i].getName().length() - 5,
+                        files[i].getName().length()).equals(".epub")) {
+                    fileName = files[i].getName();
+                    String pureName = this.removeExtention(fileName);
+                    String targetDirectory = getFilesDir().getAbsolutePath() + "/books/" + pureName;
+                    Log.i("trgetdir", targetDirectory);
+                    File dir = new File(targetDirectory);
+                    dir.mkdirs();
+                    String targetPath = targetDirectory + "/" + fileName;
+                    Log.i("copyfile", baseDirectory + "/" + fileName);
+                    InputStream localInputStream = new FileInputStream(new File(baseDirectory + "/" + fileName));
+                    FileOutputStream localFileOutputStream = new FileOutputStream(targetPath);
+                    //booksList.add(fileName);
+                    byte[] arrayOfByte = new byte[1024];
+                    int offset;
+                    while ((offset = localInputStream.read(arrayOfByte)) > 0) {
+                        localFileOutputStream.write(arrayOfByte, 0, offset);
+                    }
+                    localFileOutputStream.close();
+                    localInputStream.close();
+                    Log.d(TAG, fileName + " copied to phone");
+                }
+            }
+
+        }
+        catch (IOException localIOException)
+        {
+            localIOException.printStackTrace();
+            Log.d(TAG, "failed to copy");
+            return;
+        }
+    }
+
+    public void getCopiedEbooks() {
+        String targetDirectory = getFilesDir().getAbsolutePath() + "/books/";
+        File directory = new File(targetDirectory);
+        File[] files = directory.listFiles();
+        for (int i = 0; i < files.length; i++)
+        {
+            booksList.add(files[i].getName());
+        }
+    }
+
+    public void getEbooksOnDevice() {
+        String baseDirectory = Environment.getExternalStorageDirectory().toString();
+        File directory = new File(baseDirectory);
+        File[] files = directory.listFiles();
+        for (int i = 0; i < files.length; i++)
+        {
+            booksListForFilesView.add(files[i].getName());
+        }
+    }
+
+    public void readBooksDat(List<Book> targetlist) {
+        try {
+            FileInputStream fis = context.openFileInput("Books.dat");
+            ObjectInputStream is = new ObjectInputStream(fis);
+            targetlist = (ArrayList<Book>) is.readObject();
+            is.close();
+            fis.close();
+        } catch (IOException e){
+            Log.d(TAG, "failed to readBooksDat (IOExc)");
+        } catch (ClassNotFoundException e){
+            Log.d(TAG, "failed to readBooksDat (CNFExc)");
+        }
+        booksList = new ArrayList<String>();
+        for(Book b : targetlist){
+            booksList.add(b.name);
+            booksPagePositions.add(b.line);
+        }
+    }
+
+
+    public  void makeStubBooksDatFile() throws IOException {
+        getCopiedEbooks();
+        List<Book> stublist = new ArrayList<Book>();
+        int i = 0;
+        for(String s : booksList){
+            Book book = new Book(i, s, 0.1, true);
+            if(!book.name.equals("HTCSpeakData"))
+                stublist.add(book);
+            i++;
+        }
+        stublist.add(new Book(i, "FakeBook1.epub", 0.1, false));
+        stublist.add(new Book(i+1, "FakeBook2.epub", 0.1, false));
+        stublist.add(new Book(i+2, "FakeBook3.epub", 0.1, false));
+
+        FileOutputStream fos = context.openFileOutput("Books.dat", Context.MODE_PRIVATE);
+        ObjectOutputStream os = new ObjectOutputStream(fos);
+        os.writeObject(stublist);
+        os.close();
+        fos.close();
+    }
+
+    public String removeExtention(String filePath) {
+        // These first few lines the same as Justin's
+        File f = new File(filePath);
+
+        // if it's a directory, don't remove the extention
+        if (f.isDirectory()) return filePath;
+
+        String name = f.getName();
+
+        // Now we know it's a file - don't need to do any special hidden
+        // checking or contains() checking because of:
+        final int lastPeriodPos = name.lastIndexOf('.');
+        if (lastPeriodPos <= 0)
+        {
+            // No period after first character - return name as it was passed in
+            return filePath;
+        }
+        else
+        {
+            // Remove the last period and everything after it
+            File renamed = new File(f.getParent(), name.substring(0, lastPeriodPos));
+            return renamed.getPath();
+        }
+    }
 
     public static void verifyStoragePermissions(Activity activity) {
         // Check if we have write permission
@@ -366,8 +649,6 @@ public class Viewer extends Activity {
         @Override
         public void onStateChanged(State arg0) {
             Log.i("StateDelegate","onStateChanged");
-            // TODO Auto-generated method stub
-
         }
     }
 
@@ -375,7 +656,6 @@ public class Viewer extends Activity {
         @Override
         public Highlights getHighlightsForChapter(int chapterIndex) {
             Log.i("HighlightDelegate","HighlightListener");
-            // TODO Auto-generated method stub
             Highlights results = new Highlights();
             for (int index = 0; index < highlights.getSize(); index++) {
                 Highlight highlight = highlights.getHighlight(index);
@@ -389,7 +669,6 @@ public class Viewer extends Activity {
         @Override
         public void onHighlightDeleted(Highlight highlight) {
             Log.i("HighlightDelegate","onHighlightDeleted");
-            // TODO Auto-generated method stub
             for (int index = 0; index < highlights.getSize(); index++) {
                 Highlight temp = highlights.getHighlight(index);
                 if (temp.chapterIndex == highlight.chapterIndex
@@ -602,62 +881,6 @@ public class Viewer extends Activity {
 
 
 
-    public void copyToDevice(String fileName) {
-            try
-            {
-                String baseDirectory = Environment.getExternalStorageDirectory().toString();
-                String pureName = this.removeExtention(fileName);
-                String targetDirectory = getFilesDir().getAbsolutePath() + "/books/"+pureName;
-                Log.i("trgetdir", targetDirectory);
-                File dir = new File(targetDirectory);
-                dir.mkdirs();
-                String targetPath = targetDirectory+ "/" + fileName;
-                Log.i("copyfile", baseDirectory +"/"+ fileName);
-                InputStream localInputStream = new FileInputStream(new File(baseDirectory + "/"+ fileName));
-                FileOutputStream localFileOutputStream = new FileOutputStream(targetPath);
 
-                byte[] arrayOfByte = new byte[1024];
-                int offset;
-                while ((offset = localInputStream.read(arrayOfByte))>0)
-                {
-                    localFileOutputStream.write(arrayOfByte, 0, offset);
-                }
-                localFileOutputStream.close();
-                localInputStream.close();
-                Log.d(TAG, fileName+" copied to phone");
-            }
-            catch (IOException localIOException)
-            {
-                localIOException.printStackTrace();
-                Log.d(TAG, "failed to copy");
-                return;
-            }
-
-    }
-
-    public String removeExtention(String filePath) {
-        // These first few lines the same as Justin's
-        File f = new File(filePath);
-
-        // if it's a directory, don't remove the extention
-        if (f.isDirectory()) return filePath;
-
-        String name = f.getName();
-
-        // Now we know it's a file - don't need to do any special hidden
-        // checking or contains() checking because of:
-        final int lastPeriodPos = name.lastIndexOf('.');
-        if (lastPeriodPos <= 0)
-        {
-            // No period after first character - return name as it was passed in
-            return filePath;
-        }
-        else
-        {
-            // Remove the last period and everything after it
-            File renamed = new File(f.getParent(), name.substring(0, lastPeriodPos));
-            return renamed.getPath();
-        }
-    }
 
 }

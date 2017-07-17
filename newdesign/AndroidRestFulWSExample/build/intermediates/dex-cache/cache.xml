@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<items version="2" >
+
+    <item
+        is-multidex="false"
+        jar="/home/student/Android/Sdk/extras/android/m2repository/com/android/support/support-v4/19.1.0/support-v4-19.1.0.jar"
+        jumboMode="false"
+        optimize="true"
+        revision="26.0.0"
+        sha1="85f201b380937e61a9dce6ca90ccf6872abbfb67">
+        <dex dex="/home/student/AndroidStudioProjects/eBook-sync-Android/AndroidRestFulWSExample/app/build/intermediates/pre-dexed/debug/support-v4-19.1.0_e54f50352bbf5df18e863804a186bdc5a02d5398.jar" />
+    </item>
+    <item
+        is-multidex="false"
+        jar="/home/student/AndroidStudioProjects/eBook-sync-Android/AndroidRestFulWSExample/app/libs/android-async-http-1.4.4.jar"
+        jumboMode="false"
+        optimize="true"
+        revision="26.0.0"
+        sha1="3bae85a076241828810bf8fbcc12e5891d5fc34c">
+        <dex dex="/home/student/AndroidStudioProjects/eBook-sync-Android/AndroidRestFulWSExample/app/build/intermediates/pre-dexed/debug/android-async-http-1.4.4_b4fe3f5878720c489dcdecfde9d8364dc6f70c08.jar" />
+    </item>
+    <item
+        is-multidex="false"
+        jar="/home/student/AndroidStudioProjects/eBook-sync-Android/AndroidRestFulWSExample/app/build/intermediates/exploded-aar/com.android.support/appcompat-v7/19.1.0/jars/classes.jar"
+        jumboMode="false"
+        optimize="true"
+        revision="26.0.0"
+        sha1="3499ceba05ca1f6037c6a2fad73df8f636224a28">
+        <dex dex="/home/student/AndroidStudioProjects/eBook-sync-Android/AndroidRestFulWSExample/app/build/intermediates/pre-dexed/debug/com.android.support-appcompat-v7-19.1.0_f5330a097d231df04f5ffbe3e715486458d4deac.jar" />
+    </item>
+
+</items>
