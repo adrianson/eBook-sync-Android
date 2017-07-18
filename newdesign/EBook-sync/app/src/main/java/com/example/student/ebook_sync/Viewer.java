@@ -1,6 +1,21 @@
 package com.example.student.ebook_sync;
 
 
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import com.android.volley.Request;
+import com.android.volley.RequestQueue;
+import com.android.volley.Response;
+import com.android.volley.VolleyError;
+import com.android.volley.toolbox.StringRequest;
+import com.android.volley.toolbox.Volley;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.loopj.android.http.AsyncHttpClient;
+import com.loopj.android.http.AsyncHttpResponseHandler;
+import com.loopj.android.http.RequestParams;
+
 
 import com.skytree.epub.Caret;
 import com.skytree.epub.Highlight;
@@ -21,6 +36,7 @@ import com.skytree.epub.State;
 import com.skytree.epub.StateListener;
 
 import android.app.Activity;
+import android.app.ProgressDialog;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Color;
@@ -42,10 +58,13 @@ import android.widget.RelativeLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import java.io.InputStreamReader;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+import java.io.Reader;
 import java.io.Serializable;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import 	java.util.zip.ZipInputStream;
 import java.io.BufferedInputStream;
@@ -67,13 +86,13 @@ import java.io.InputStream;
 import android.content.Context;
 
 import 	java.util.zip.ZipEntry;
-
 import android.Manifest;
 import android.content.pm.PackageManager;
 import android.widget.ViewFlipper;
 
 import static com.example.student.ebook_sync.R.id.listView;
 import static com.example.student.ebook_sync.R.id.parent;
+import static com.example.student.ebook_sync.R.id.text;
 
 class Book implements Serializable {
     int id;
@@ -93,6 +112,11 @@ class Book implements Serializable {
 public class Viewer extends Activity {
 
     final Context context = this;
+    TextView debugTextView;
+    String url = "http://spring-boot-jpa-oracle-example-dev.eu-central-1.elasticbeanstalk.com";
+    String username = "user1";
+    RequestQueue requestQueue;
+    Gson gson;
     static double page_position;
     static boolean reading = true; // false->home(list of books)
     ReflowableControl rv;       // ReflowableControl
@@ -211,20 +235,9 @@ public class Viewer extends Activity {
         booksList = new ArrayList<String>();
         booksListForFilesView = new ArrayList<String>();
         booksListDat = new ArrayList<Book>();
-        //booksList.add("Metamorphosis-jackson.epub");
-        //booksList.add("The-Problems-of-Philosophy-LewisTheme.epub");
         booksPagePositions = new ArrayList<Double>();
-        /*
-        booksPagePositions.add(0.572);
-        booksPagePositions.add(0.572);
-        booksPagePositions.add(0.572);
-        booksPagePositions.add(0.572);
-        */
         activeBookId = 0;
         previouspages = 0;
-        //fileName = booksList.get(activeBookId);
-        //fileName = "Metamorphosis-jackson.epub";
-        //page_position = booksPagePositions.get(activeBookId);
         this.copyToDevice();
         try { // Sets up a temporary Books.dat file
             this.makeStubBooksDatFile();
@@ -245,6 +258,13 @@ public class Viewer extends Activity {
         fontList.add("Arial");
         fontList.add("Cooper");
         fontList.add("Impress");
+        //---------------Web_Services_Section---------------
+        debugTextView = (TextView) findViewById(R.id.textView);
+        requestQueue = Volley.newRequestQueue(this);
+        GsonBuilder gsonBuilder = new GsonBuilder();
+        gson = gsonBuilder.create();
+        fetchPosts();
+        //--------------------------------------------------
         filesView = (ListView) findViewById(R.id.filesView);
         listView = (ListView) findViewById(R.id.listView);
         String []booksForAdapter = new String[booksList.size()];
@@ -286,9 +306,9 @@ public class Viewer extends Activity {
                     reading = true;
                     toolbar.setTitle("Loading... ");
                     scene.showNext();
-                    fab2.setVisibility(View.VISIBLE);
+                    fab2.setVisibility(View.INVISIBLE);
                 } else {
-                    Toast toast = Toast.makeText(context , "There is no such book on the device :(", Toast.LENGTH_SHORT);
+                    Toast toast = Toast.makeText(context , "There is no such book added :(", Toast.LENGTH_SHORT);
                     toast.show();
                 }
             }
@@ -303,7 +323,9 @@ public class Viewer extends Activity {
                 if(sceneIsVisible) {
                     scene.setVisibility(View.INVISIBLE);
                     filesView.setVisibility(View.VISIBLE);
+                    fab.setVisibility(View.GONE);
                     sceneIsVisible = false;
+                    toolbar.setTitle(Environment.getExternalStorageDirectory().toString());
                     getEbooksOnDevice();
                     String []booksForAdapter = new String[booksListForFilesView.size()];
                     booksListForFilesView.toArray(booksForAdapter);
@@ -321,9 +343,8 @@ public class Viewer extends Activity {
 
                                 File target = new File(tmp);
                                 String fileName = tmp;
-                                //Log.d("Files", "FileName:" + files[i].getName());
-                                if(target.isFile() && target.getName().substring(target.getName().length() - 5,
-                                        target.getName().length()).equals(".epub") && checkForDuplicate(fileName)) {
+                                if(target.getName().substring(target.getName().length()-5,
+                                        target.getName().length()).equals(".epub") && checkForDuplicate(tmp)) {
                                     fileName = target.getName();
                                     String pureName = removeExtention(fileName);
                                     String targetDirectory = getFilesDir().getAbsolutePath() + "/books/" + pureName;
@@ -343,10 +364,22 @@ public class Viewer extends Activity {
                                     localInputStream.close();
                                     Log.d(TAG, fileName + " copied to phone");
 
-                                    booksList.add(fileName);
-                                } else {
-                                    Toast toast = Toast.makeText(context , "It's not a vaible file :(", Toast.LENGTH_SHORT);
+                                    booksList.add(pureName);
+                                    booksListDat.add(new Book(booksListDat.get(booksListDat.size()-1).id+1, fileName, 0, true));
+                                    booksPagePositions.add(0D);
+                                    Toast toast = Toast.makeText(context , pureName + "(.epub) added", Toast.LENGTH_SHORT);
                                     toast.show();
+                                    scene.setVisibility(View.VISIBLE);
+                                    filesView.setVisibility(View.INVISIBLE);
+                                    fab.setVisibility(View.VISIBLE);
+                                    toolbar.setTitle("BOOKS LIST");
+                                    sceneIsVisible = true;
+                                } else {
+                                    Toast toast = Toast.makeText(context , "It's not a vaible file :( " + "\n" + removeExtention(fileName) +
+                                            "(" + target.getName().substring(target.getName().length() - 5,
+                                            target.getName().length()) + ") \ncheckForDuplicates: " + checkForDuplicate(tmp), Toast.LENGTH_SHORT);
+                                    toast.show();
+                                    
                                 }
 
                             }
@@ -362,6 +395,8 @@ public class Viewer extends Activity {
                 } else {
                     scene.setVisibility(View.VISIBLE);
                     filesView.setVisibility(View.INVISIBLE);
+                    fab.setVisibility(View.VISIBLE);
+                    toolbar.setTitle("BOOKS LIST");
                     sceneIsVisible = true;
                 }
             }
@@ -388,6 +423,45 @@ public class Viewer extends Activity {
 
     }
 
+    private void fetchPosts() {
+        StringRequest request = new StringRequest(Request.Method.GET, url+"/searchByName?name="+username, onPostsLoaded, onPostsError);
+
+        requestQueue.add(request);
+    }
+
+    private final Response.Listener<String> onPostsLoaded = new Response.Listener<String>() {
+        @Override
+        public void onResponse(String response) {
+            List<SearchResponse> posts = Arrays.asList(gson.fromJson(response, SearchResponse[].class));
+
+            Log.i("PostActivity", response);
+            Toast toast = Toast.makeText(context , "PostResponse: " + response, Toast.LENGTH_SHORT);
+            toast.show();
+            int i = 0;
+            for (SearchResponse post : posts) {
+                String textForToast = "Uid: " + post.uid + "\nUname: " + post.uname +
+                        "\nUpassword: " + post.password + "\nActiveBookID: " + post.bookId +
+                        "\nItems: " + post.items;
+                /*List<Item> postsItems = Arrays.asList(gson.fromJson(post.items.get(i).toString(), Item[].class));
+                for (Item it : postsItems) {
+                    textForToast += "\n    " + it.bid + "\n    " + it.bname + "\n    " + it.location + "\n    " + it.line;
+                }*/
+                toast = Toast.makeText(context , textForToast , Toast.LENGTH_LONG);
+                toast.show();
+                debugTextView.setText(textForToast);
+            }
+        }
+    };
+
+    private final Response.ErrorListener onPostsError = new Response.ErrorListener() {
+        @Override
+        public void onErrorResponse(VolleyError error) {
+            Log.e("PostActivity", error.toString());
+            Toast toast = Toast.makeText(context , "PostResponse failed!", Toast.LENGTH_SHORT);
+            toast.show();
+        }
+    };
+
 
     private void setNewTitle() {
         String newtitle = (rv.getPageIndexInChapter() + previouspages) +
@@ -401,7 +475,7 @@ public class Viewer extends Activity {
 
     public boolean checkForDuplicate(String tmp){
         for(String s : booksList){
-            if(s.equals(tmp))
+            if(s.equals(tmp.substring(0, tmp.length()-5)) || s.equals(tmp))
                 return false;
         }
         return true;
@@ -486,12 +560,15 @@ public class Viewer extends Activity {
     }
 
     public void getEbooksOnDevice() {
+        booksListForFilesView = new ArrayList<String>();
         String baseDirectory = Environment.getExternalStorageDirectory().toString();
         File directory = new File(baseDirectory);
         File[] files = directory.listFiles();
         for (int i = 0; i < files.length; i++)
         {
-            booksListForFilesView.add(files[i].getName());
+            if(files[i].getName().length() >=5 && files[i].getName().substring(files[i].getName().length() - 5,
+                    files[i].getName().length()).equals(".epub"))
+                booksListForFilesView.add(files[i].getName());
         }
     }
 
