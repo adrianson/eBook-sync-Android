@@ -1,9 +1,6 @@
 package com.example.student.ebook_sync;
 
 
-import org.json.JSONException;
-import org.json.JSONObject;
-
 import com.android.volley.Request;
 import com.android.volley.RequestQueue;
 import com.android.volley.Response;
@@ -12,9 +9,6 @@ import com.android.volley.toolbox.StringRequest;
 import com.android.volley.toolbox.Volley;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
-import com.loopj.android.http.AsyncHttpClient;
-import com.loopj.android.http.AsyncHttpResponseHandler;
-import com.loopj.android.http.RequestParams;
 
 
 import com.skytree.epub.Caret;
@@ -36,7 +30,6 @@ import com.skytree.epub.State;
 import com.skytree.epub.StateListener;
 
 import android.app.Activity;
-import android.app.ProgressDialog;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Color;
@@ -48,8 +41,6 @@ import android.util.Log;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.view.ViewGroup;
-import android.view.animation.Animation;
-import android.view.animation.AnimationUtils;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
@@ -58,11 +49,9 @@ import android.widget.RelativeLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import java.io.InputStreamReader;
+import java.io.FileNotFoundException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
-import java.io.Reader;
-import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -90,66 +79,41 @@ import android.Manifest;
 import android.content.pm.PackageManager;
 import android.widget.ViewFlipper;
 
-import static com.example.student.ebook_sync.R.id.listView;
-import static com.example.student.ebook_sync.R.id.parent;
-import static com.example.student.ebook_sync.R.id.text;
-
-class Book implements Serializable {
-    int id;
-    String name;
-    double line;
-    boolean exists;
-
-    Book(int id, String name, double line, boolean exists) {
-        this.id = id;
-        this.name = name;
-        this.line = line;
-        this.exists = exists;
-    }
-}
-
 
 public class Viewer extends Activity {
 
     final Context context = this;
-    TextView debugTextView;
+    //TextView debugTextView;
+    User user;
     String url = "http://spring-boot-jpa-oracle-example-dev.eu-central-1.elasticbeanstalk.com";
+    String urlrequest = "/searchUser?name=";
     String username = "user1";
+    String password = "password1";
     RequestQueue requestQueue;
     Gson gson;
     static double page_position;
     static boolean reading = true; // false->home(list of books)
+    boolean sceneIsVisible = true; // false->filesView
     ReflowableControl rv;       // ReflowableControl
     RelativeLayout ePubView, homeView;    // Basic View of Activity.
     ViewFlipper scene;
     ListView listView, filesView;
-    FloatingActionButton switchActivityButton1;
+    FloatingActionButton fab;
+    FloatingActionButton fab2;
     Button markButton;
     Toolbar toolbar;
-    int previouspages;
     List<String> booksList;
-    List<String> booksListForFilesView;
     List<Double> booksPagePositions;
     List<Book> booksListDat;
-    List<String> fontList;
-    int fontindex;
     int activeBookId;
     final private String TAG = "EPub";
     Highlights highlights;
-    String fileName;
-    int temp = 20;
     private static final int REQUEST_EXTERNAL_STORAGE = 1;
     private static String[] PERMISSIONS_STORAGE = {
             Manifest.permission.READ_EXTERNAL_STORAGE,
             Manifest.permission.WRITE_EXTERNAL_STORAGE
     };
-    FloatingActionButton fab;
-    FloatingActionButton fab2;
-    boolean sceneIsVisible;
 
-    public static int calcDIP(Context context, float px){
-        return (int)(16 * context.getResources().getDisplayMetrics().density);
-    }
 
     protected void makeViewerLayout() {
         highlights = new Highlights();
@@ -172,7 +136,14 @@ public class Viewer extends Activity {
 
         rv.setBaseDirectory(baseDirectory);
         //copyToDevice(fileName);
-        rv.setBookName(booksList.get(activeBookId));
+        try {
+            rv.setBookName(getBookNameByID(user.activeBookId, booksListDat));
+        } catch (NullPointerException e) {
+            Toast toast = Toast.makeText(context, "NPException in rv.setBookName(getBookNameByID(user.activeBookId, booksListDat))",
+                    Toast.LENGTH_LONG);
+            toast.show();
+            rv.setBookName(getBookNameByID(0, booksListDat));
+        }
 //        rv.setLicenseKey("0000-0000-0000-0000");
         rv.setDoublePagedForLandscape(true);
         rv.setFont("TimesRoman", 20);
@@ -227,46 +198,50 @@ public class Viewer extends Activity {
     }
 
 
-
     public void onCreate(Bundle savedInstanceState) {
         debug("onCreate");
         super.onCreate(savedInstanceState);
         verifyStoragePermissions(this);
+        user = new User(username, password);
         booksList = new ArrayList<String>();
-        booksListForFilesView = new ArrayList<String>();
         booksListDat = new ArrayList<Book>();
         booksPagePositions = new ArrayList<Double>();
         activeBookId = 0;
-        previouspages = 0;
-        this.copyToDevice();
         try { // Sets up a temporary Books.dat file
             this.makeStubBooksDatFile();
         } catch (IOException e) {
-            Log.e("exception", "IOException trying to makestubbookstdat", e);
+            Log.e("exception", "IOException trying to makestubbooksdat", e);
+            Toast toast = Toast.makeText(context, "IOException trying to make a stub Books.dat", Toast.LENGTH_LONG);
+            toast.show();
         }
-        this.readBooksDat(booksListDat);
-        this.makeViewerLayout();
-        setContentView(R.layout.activity_viewer);
-        toolbar = findViewById(R.id.toolbar);
-        toolbar.setTitle("Loading...");
-        sceneIsVisible = true;
-        scene = (ViewFlipper) findViewById(R.id.viewFlipper);
-        scene.addView(ePubView);
-        scene.showNext();
-        fontList = new ArrayList<String>();
-        fontList.add("TimesRoman");
-        fontList.add("Arial");
-        fontList.add("Cooper");
-        fontList.add("Impress");
+        booksListDat = readBooksDat();
         //---------------Web_Services_Section---------------
-        debugTextView = (TextView) findViewById(R.id.textView);
         requestQueue = Volley.newRequestQueue(this);
         GsonBuilder gsonBuilder = new GsonBuilder();
         gson = gsonBuilder.create();
         fetchPosts();
         //--------------------------------------------------
+        updateLocalBooksDat(booksListDat);
+        copyToDeviceFromBooksDat(booksListDat);
+        try {
+            page_position = getBookLine(user.activeBookId, booksListDat);
+        } catch (NullPointerException e) {
+            Toast toast = Toast.makeText(context, "Failed to get the page_position", Toast.LENGTH_LONG);
+            toast.show();
+            page_position = 0;
+            // TODO create new user;
+        }
+        this.makeViewerLayout();
+        setContentView(R.layout.activity_viewer);
+        toolbar = findViewById(R.id.toolbar);
+        toolbar.setTitle("Loading...");
+        scene = (ViewFlipper) findViewById(R.id.viewFlipper);
+        scene.addView(ePubView);
+        scene.showNext();
+
         filesView = (ListView) findViewById(R.id.filesView);
         listView = (ListView) findViewById(R.id.listView);
+        booksList = getBooksNameList(booksListDat);
         String []booksForAdapter = new String[booksList.size()];
         booksList.toArray(booksForAdapter);
         //ArrayAdapter<String> adapter = new ArrayAdapter<String>(this, android.R.layout.simple_list_item_1, android.R.id.text1, booksForAdapter);
@@ -275,15 +250,15 @@ public class Viewer extends Activity {
             public View getView(int position, View convertView, ViewGroup parent) {
                 View row = super.getView(position, convertView, parent);
 
-                if(getItem(position).substring(getItem(position).length()-5, getItem(position).length()).equals(".epub"))
+                if(getBookExistenceByName(getItem(position), booksListDat))
                 {
-                    row.setBackgroundColor (Color.RED); // some color
+                    row.setBackgroundColor (Color.WHITE); // some color
                     //convertView.setClickable(false);
                 }
                 else
                 {
                     // default state
-                    row.setBackgroundColor (Color.WHITE); // default coloe
+                    row.setBackgroundColor (Color.RED); // default coloe
                 }
 
                 return row;
@@ -295,12 +270,11 @@ public class Viewer extends Activity {
             public void onItemClick(AdapterView<?> parent, View view,
                                     int position, long id) {
                 String tmp = listView.getAdapter().getItem(position).toString();
-                if(!tmp.substring(tmp.length()-5, tmp.length()).equals(".epub")) {
+                if(getBookExistenceByName(tmp, booksListDat)) {
                     scene.removeView(ePubView);
-                    booksPagePositions.set(activeBookId, page_position);
-                    activeBookId = position;
-                    page_position = booksPagePositions.get(activeBookId);
-                    fileName = booksList.get(activeBookId);
+                    setBookLine(user.activeBookId, booksListDat, page_position);
+                    user.activeBookId = position;
+                    page_position = getBookLine(user.activeBookId, booksListDat);
                     makeViewerLayout();
                     scene.addView(ePubView);
                     reading = true;
@@ -326,9 +300,10 @@ public class Viewer extends Activity {
                     fab.setVisibility(View.GONE);
                     sceneIsVisible = false;
                     toolbar.setTitle(Environment.getExternalStorageDirectory().toString());
-                    getEbooksOnDevice();
-                    String []booksForAdapter = new String[booksListForFilesView.size()];
-                    booksListForFilesView.toArray(booksForAdapter);
+                    booksList = new ArrayList<String>();
+                    booksList = getBookNamesInExternalStorage();
+                    final String []booksForAdapter = new String[booksList.size()];
+                    booksList.toArray(booksForAdapter);
                     ArrayAdapter<String> adapter = new ArrayAdapter<String>(context, android.R.layout.simple_list_item_1, android.R.id.text1, booksForAdapter);
                     filesView.setAdapter(adapter);
 
@@ -336,24 +311,25 @@ public class Viewer extends Activity {
                         @Override
                         public void onItemClick(AdapterView<?> parent, View view,
                                                 int position, long id) {
-                            String tmp = filesView.getAdapter().getItem(position).toString();
                             try
                             {
                                 String baseDirectory = Environment.getExternalStorageDirectory().toString();
-
+                                String tmp = filesView.getAdapter().getItem(position).toString();
                                 File target = new File(tmp);
-                                String fileName = tmp;
-                                if(target.getName().substring(target.getName().length()-5,
-                                        target.getName().length()).equals(".epub") && checkForDuplicate(tmp)) {
-                                    fileName = target.getName();
-                                    String pureName = removeExtention(fileName);
-                                    String targetDirectory = getFilesDir().getAbsolutePath() + "/books/" + pureName;
+                                String newName = tmp;
+                                boolean bookIsNew = true;
+                                for(Book b : booksListDat){
+                                    if(newName.equals(b.name))
+                                        bookIsNew = false;
+                                }
+                                if(bookIsNew) {
+                                    //newName = target.getName();
+                                    String pureName = removeExtention(newName);
+                                    String targetDirectory = getFilesDir().getAbsolutePath() + "/books";
                                     Log.i("trgetdir", targetDirectory);
-                                    File dir = new File(targetDirectory);
-                                    dir.mkdirs();
-                                    String targetPath = targetDirectory + "/" + fileName;
-                                    Log.i("copyfile", baseDirectory + "/" + fileName);
-                                    InputStream localInputStream = new FileInputStream(new File(baseDirectory + "/" + fileName));
+                                    String targetPath = targetDirectory + "/" + newName;
+                                    Log.i("copyfile", baseDirectory + "/" + newName);
+                                    InputStream localInputStream = new FileInputStream(new File(baseDirectory + "/" + newName));
                                     FileOutputStream localFileOutputStream = new FileOutputStream(targetPath);
                                     byte[] arrayOfByte = new byte[1024];
                                     int offset;
@@ -362,20 +338,26 @@ public class Viewer extends Activity {
                                     }
                                     localFileOutputStream.close();
                                     localInputStream.close();
-                                    Log.d(TAG, fileName + " copied to phone");
+                                    Log.d(TAG, newName + " copied to phone");
 
-                                    booksList.add(pureName);
-                                    booksListDat.add(new Book(booksListDat.get(booksListDat.size()-1).id+1, fileName, 0, true));
-                                    booksPagePositions.add(0D);
-                                    Toast toast = Toast.makeText(context , pureName + "(.epub) added", Toast.LENGTH_SHORT);
+                                    Book newBook = new Book(getNewBookID(booksListDat), newName, 0, true);
+                                    booksListDat.add(newBook);
+                                    updateLocalBooksDat(booksListDat);
+                                    Toast toast = Toast.makeText(context , newName + " added", Toast.LENGTH_SHORT);
                                     toast.show();
+
+                                    //-----Updating the BOOK LIST -----------
+                                    booksList = getBooksNameList(booksListDat);
+                                    String []booksForAdapter = new String[booksList.size()];
+                                    booksList.toArray(booksForAdapter);
+                                    //---------------------------------------
                                     scene.setVisibility(View.VISIBLE);
                                     filesView.setVisibility(View.INVISIBLE);
                                     fab.setVisibility(View.VISIBLE);
                                     toolbar.setTitle("BOOKS LIST");
                                     sceneIsVisible = true;
                                 } else {
-                                    Toast toast = Toast.makeText(context , "It's not a vaible file :( " + "\n" + removeExtention(fileName) +
+                                    Toast toast = Toast.makeText(context , "It's not a vaible file :( " + "\n" + removeExtention(newName) +
                                             "(" + target.getName().substring(target.getName().length() - 5,
                                             target.getName().length()) + ") \ncheckForDuplicates: " + checkForDuplicate(tmp), Toast.LENGTH_SHORT);
                                     toast.show();
@@ -423,8 +405,158 @@ public class Viewer extends Activity {
 
     }
 
+    public  void makeStubBooksDatFile() throws IOException {
+        copyToDevice();
+        List<String> copiedbooks = getCopiedEbooks();
+        List<Book> stublist = new ArrayList<Book>();
+        int i = 0;
+        for(String s : copiedbooks){
+            Book book = new Book(i, s, 0.1, true);
+            if(!book.name.equals("HTCSpeakData"))
+                stublist.add(book);
+            i++;
+        }
+        stublist.add(new Book(i, "FakeBook1.epub", 0.1, false));
+        stublist.add(new Book(i+1, "FakeBook2.epub", 0.1, false));
+        stublist.add(new Book(i+2, "FakeBook3.epub", 0.1, false));
+
+        FileOutputStream fos = context.openFileOutput("Books.dat", Context.MODE_PRIVATE);
+        ObjectOutputStream os = new ObjectOutputStream(fos);
+        os.writeObject(stublist);
+        os.close();
+        fos.close();
+    }
+
+    public void copyToDevice() {
+        try
+        {
+            String baseDirectory = Environment.getExternalStorageDirectory().toString();
+
+            File directory = new File(baseDirectory);
+            File[] files = directory.listFiles();
+            String fileName;
+            for (int i = 0; i < files.length; i++)
+            {
+                if(files[i].isFile() && files[i].getName().substring(files[i].getName().length() - 5,
+                        files[i].getName().length()).equals(".epub")) {
+                    fileName = files[i].getName();
+                    String targetDirectory = getFilesDir().getAbsolutePath() + "/books";
+                    String targetPath = targetDirectory + "/" + fileName;
+                    Log.i("copyfile", baseDirectory + "/" + fileName);
+                    InputStream localInputStream = new FileInputStream(new File(baseDirectory + "/" + fileName));
+                    FileOutputStream localFileOutputStream = new FileOutputStream(targetPath);
+                    byte[] arrayOfByte = new byte[1024];
+                    int offset;
+                    while ((offset = localInputStream.read(arrayOfByte)) > 0) {
+                        localFileOutputStream.write(arrayOfByte, 0, offset);
+                    }
+                    localFileOutputStream.close();
+                    localInputStream.close();
+                    Log.d(TAG, fileName + " copied to phone");
+                }
+            }
+
+        }
+        catch (IOException localIOException)
+        {
+            localIOException.printStackTrace();
+            Log.d(TAG, "failed to copy");
+            return;
+        }
+    }
+
+    public String removeExtention(String filePath) {
+        File f = new File(filePath);
+        if (f.isDirectory()) return filePath;
+        String name = f.getName();
+        final int lastPeriodPos = name.lastIndexOf('.');
+        if (lastPeriodPos <= 0)
+        {
+            return filePath;
+        } else {
+            File renamed = new File(f.getParent(), name.substring(0, lastPeriodPos));
+            return renamed.getPath();
+        }
+    }
+
+    public List<String> getCopiedEbooks() {
+        String targetDirectory = getFilesDir().getAbsolutePath() + "/books";
+        File directory = new File(targetDirectory);
+        File[] files = directory.listFiles();
+        List<String> result = new ArrayList<String>();
+        for (int i = 0; i < files.length; i++)
+            result.add(files[i].getName());
+        return result;
+    }
+
+    public List<Book> readBooksDat() {
+        try {
+            List<Book> result = new ArrayList<Book>();
+            FileInputStream fis = context.openFileInput("Books.dat");
+            ObjectInputStream is = new ObjectInputStream(fis);
+            result = (ArrayList<Book>) is.readObject();
+            is.close();
+            fis.close();
+            return result;
+        } catch (IOException e){
+            Log.d(TAG, "failed to readBooksDat (IOExc)");
+        } catch (ClassNotFoundException e){
+            Log.d(TAG, "failed to readBooksDat (CNFExc)");
+        }
+        return new ArrayList<Book>();
+    }
+
+    public void copyToDeviceFromBooksDat(List<Book> books) {
+        try
+        {
+            String baseDirectory = Environment.getExternalStorageDirectory().toString();
+            File directory = new File(baseDirectory);
+            File[] files = directory.listFiles();
+            String fileName;
+
+            boolean isInBooksDat;
+            for (int i = 0; i < files.length; i++)
+            {
+                isInBooksDat = false;
+                for(Book b : books){
+                    fileName = b.name;
+                    String targetDirectory = getFilesDir().getAbsolutePath() + "/books"; // "/books/" + pureName;
+                    /*Log.i("trgetdir", targetDirectory);
+                    File dir = new File(targetDirectory);
+                    dir.mkdirs();*/
+                    String targetPath = targetDirectory + "/" + fileName;
+                    Log.i("copyfile", baseDirectory + "/" + fileName);
+                    InputStream localInputStream = new FileInputStream(new File(baseDirectory + "/" + fileName));
+                    FileOutputStream localFileOutputStream = new FileOutputStream(targetPath);
+                    try {
+                        byte[] arrayOfByte = new byte[1024];
+                        int offset;
+                        while ((offset = localInputStream.read(arrayOfByte)) > 0) {
+                            localFileOutputStream.write(arrayOfByte, 0, offset);
+                        }
+                        b.exists = true;
+                    } catch(FileNotFoundException ee){
+                          b.exists = false;
+                    }
+
+                    localFileOutputStream.close();
+                    localInputStream.close();
+                    Log.d(TAG, fileName + " copied to phone");
+                }
+            }
+
+        }
+        catch (IOException localIOException)
+        {
+            localIOException.printStackTrace();
+            Log.d(TAG, "failed to copy");
+            Toast toast = Toast.makeText(context, "copyToDeviceFromBooksDat(List<Book> books) failed", Toast.LENGTH_SHORT);
+            toast.show();
+        }
+    }
+
     private void fetchPosts() {
-        StringRequest request = new StringRequest(Request.Method.GET, url+"/searchByName?name="+username, onPostsLoaded, onPostsError);
+        StringRequest request = new StringRequest(Request.Method.GET, url + urlrequest + username, onPostsLoaded, onPostsError);
 
         requestQueue.add(request);
     }
@@ -432,24 +564,24 @@ public class Viewer extends Activity {
     private final Response.Listener<String> onPostsLoaded = new Response.Listener<String>() {
         @Override
         public void onResponse(String response) {
-            List<SearchResponse> posts = Arrays.asList(gson.fromJson(response, SearchResponse[].class));
+            List<User> posts = Arrays.asList(gson.fromJson(response, User[].class));
 
             Log.i("PostActivity", response);
-            Toast toast = Toast.makeText(context , "PostResponse: " + response, Toast.LENGTH_SHORT);
+            Toast toast = Toast.makeText(context , "Post response acquired!", Toast.LENGTH_SHORT);
             toast.show();
             int i = 0;
-            for (SearchResponse post : posts) {
-                String textForToast = "Uid: " + post.uid + "\nUname: " + post.uname +
-                        "\nUpassword: " + post.password + "\nActiveBookID: " + post.bookId +
-                        "\nItems: " + post.items;
-                /*List<Item> postsItems = Arrays.asList(gson.fromJson(post.items.get(i).toString(), Item[].class));
-                for (Item it : postsItems) {
-                    textForToast += "\n    " + it.bid + "\n    " + it.bname + "\n    " + it.location + "\n    " + it.line;
-                }*/
-                toast = Toast.makeText(context , textForToast , Toast.LENGTH_LONG);
-                toast.show();
-                debugTextView.setText(textForToast);
-            }
+            //Reading only first user instead of FOR LOOP
+            User post = posts.get(0);
+            user.setID(post.id);
+            user.setActiveBookId(post.activeBookId);
+            user.setBooks(post.books);
+            String textForToast = "Uid: " + post.id + "\nUname: " + post.name +
+                    "\nUpassword: " + post.password + "\nActiveBookID: " + post.activeBookId +
+                    "\nItems: " + post.books;
+            toast = Toast.makeText(context , textForToast , Toast.LENGTH_LONG);
+            toast.show();
+            //debugTextView.setText(textForToast);
+            SynchronizeBooksDats(booksListDat, post.books);
         }
     };
 
@@ -457,14 +589,95 @@ public class Viewer extends Activity {
         @Override
         public void onErrorResponse(VolleyError error) {
             Log.e("PostActivity", error.toString());
-            Toast toast = Toast.makeText(context , "PostResponse failed!", Toast.LENGTH_SHORT);
+            Toast toast = Toast.makeText(context , "Post response failed!", Toast.LENGTH_SHORT);
             toast.show();
         }
     };
 
+    public void SynchronizeBooksDats(List<Book> localBooks, List<Book> cloudBooks) {
+        boolean bookisnew;
+        for (Book cb : cloudBooks){
+            bookisnew = true;
+            for(Book lb : localBooks){
+                if (cb.name.equals(lb.name))
+                    bookisnew = false;
+            }
+            if(bookisnew)
+                localBooks.add(new Book(cb.id, cb.name, cb.line));
+        }
+    }
+
+    public void updateLocalBooksDat(List<Book> updatedBooks){
+        try {
+            FileOutputStream fos = context.openFileOutput("Books.dat", Context.MODE_PRIVATE);
+            ObjectOutputStream os = new ObjectOutputStream(fos);
+            os.writeObject(updatedBooks);
+            os.close();
+            fos.close();
+        } catch (IOException e){
+            Toast toast = Toast.makeText(context, "IOException trying to update local Books.dat", Toast.LENGTH_SHORT);
+        }
+    }
+
+    public List<String> getBooksNameList (List<Book> books){
+        List<String> result = new ArrayList<String>();
+        for(Book b : books){
+            result.add(b.name);
+        }
+        return result;
+    }
+
+    public boolean getBookExistenceByName(String book, List<Book> books){
+        boolean result = false;
+        for(Book b : books){
+            if(book.equals(b.name))
+                result = b.exists;
+        }
+        return result;
+    }
+
+    public String getBookNameByID (int id, List<Book> books){
+        String result = "";
+        for(Book b : books){
+            if(id == b.id)
+                result = b.name;
+        }
+        return result;
+    }
+
+    public void setBookLine(int id, List<Book> books, double line) {
+        for(Book b : books){
+            if(b.id == id)
+                b.line = line;
+        }
+    }
+
+    public double getBookLine(int id, List<Book> books) {
+        double result = 0;
+        for(Book b : books){
+            if(b.id == id)
+                result = b.line;
+        }
+        return result;
+    }
+
+    public List<String> getBookNamesInExternalStorage(){
+        List<String> result = new ArrayList<String>();
+        String baseDirectory = Environment.getExternalStorageDirectory().toString();
+        File directory = new File(baseDirectory);
+        File[] files = directory.listFiles();
+        for (int i = 0; i < files.length; i++)
+        {
+            if(files[i].isFile() && files[i].getName().length() >=5 && files[i].getName().substring(files[i].getName().length() - 5,
+                    files[i].getName().length()).equals(".epub")) {
+                result.add(files[i].getName());
+            }
+        }
+        return result;
+    }
 
     private void setNewTitle() {
-        String newtitle = (rv.getPageIndexInChapter() + previouspages) +
+        String newtitle = (rv.getPageIndexInChapter() + 0) + //unsuccessfuly tried to use number of previous pages instead of 0
                 "  " + rv.getChapterTitle(rv.getChapterIndexByPagePositionInBook(page_position));
         if(newtitle.length() > 23){
             toolbar.setTitle(newtitle.substring(0, 23) + "...");
@@ -480,6 +693,16 @@ public class Viewer extends Activity {
         }
         return true;
     }
+
+    public int getNewBookID(List<Book> books) {
+        int biggestid = 0;
+        for(Book b : books){
+            if(b.id > biggestid)
+                biggestid = b.id;
+        }
+        return biggestid+1;
+    }
+
 
     private PageMovedListener pmlistener = new PageMovedListener() {
         @Override
@@ -505,138 +728,6 @@ public class Viewer extends Activity {
     };
 
 
-    public void copyToDevice() {
-        try
-        {
-            String baseDirectory = Environment.getExternalStorageDirectory().toString();
-
-            File directory = new File(baseDirectory);
-            File[] files = directory.listFiles();
-            String fileName;
-            for (int i = 0; i < files.length; i++)
-            {
-                //Log.d("Files", "FileName:" + files[i].getName());
-                if(files[i].isFile() && files[i].getName().substring(files[i].getName().length() - 5,
-                        files[i].getName().length()).equals(".epub")) {
-                    fileName = files[i].getName();
-                    String pureName = this.removeExtention(fileName);
-                    String targetDirectory = getFilesDir().getAbsolutePath() + "/books/" + pureName;
-                    Log.i("trgetdir", targetDirectory);
-                    File dir = new File(targetDirectory);
-                    dir.mkdirs();
-                    String targetPath = targetDirectory + "/" + fileName;
-                    Log.i("copyfile", baseDirectory + "/" + fileName);
-                    InputStream localInputStream = new FileInputStream(new File(baseDirectory + "/" + fileName));
-                    FileOutputStream localFileOutputStream = new FileOutputStream(targetPath);
-                    //booksList.add(fileName);
-                    byte[] arrayOfByte = new byte[1024];
-                    int offset;
-                    while ((offset = localInputStream.read(arrayOfByte)) > 0) {
-                        localFileOutputStream.write(arrayOfByte, 0, offset);
-                    }
-                    localFileOutputStream.close();
-                    localInputStream.close();
-                    Log.d(TAG, fileName + " copied to phone");
-                }
-            }
-
-        }
-        catch (IOException localIOException)
-        {
-            localIOException.printStackTrace();
-            Log.d(TAG, "failed to copy");
-            return;
-        }
-    }
-
-    public void getCopiedEbooks() {
-        String targetDirectory = getFilesDir().getAbsolutePath() + "/books/";
-        File directory = new File(targetDirectory);
-        File[] files = directory.listFiles();
-        for (int i = 0; i < files.length; i++)
-        {
-            booksList.add(files[i].getName());
-        }
-    }
-
-    public void getEbooksOnDevice() {
-        booksListForFilesView = new ArrayList<String>();
-        String baseDirectory = Environment.getExternalStorageDirectory().toString();
-        File directory = new File(baseDirectory);
-        File[] files = directory.listFiles();
-        for (int i = 0; i < files.length; i++)
-        {
-            if(files[i].getName().length() >=5 && files[i].getName().substring(files[i].getName().length() - 5,
-                    files[i].getName().length()).equals(".epub"))
-                booksListForFilesView.add(files[i].getName());
-        }
-    }
-
-    public void readBooksDat(List<Book> targetlist) {
-        try {
-            FileInputStream fis = context.openFileInput("Books.dat");
-            ObjectInputStream is = new ObjectInputStream(fis);
-            targetlist = (ArrayList<Book>) is.readObject();
-            is.close();
-            fis.close();
-        } catch (IOException e){
-            Log.d(TAG, "failed to readBooksDat (IOExc)");
-        } catch (ClassNotFoundException e){
-            Log.d(TAG, "failed to readBooksDat (CNFExc)");
-        }
-        booksList = new ArrayList<String>();
-        for(Book b : targetlist){
-            booksList.add(b.name);
-            booksPagePositions.add(b.line);
-        }
-    }
-
-
-    public  void makeStubBooksDatFile() throws IOException {
-        getCopiedEbooks();
-        List<Book> stublist = new ArrayList<Book>();
-        int i = 0;
-        for(String s : booksList){
-            Book book = new Book(i, s, 0.1, true);
-            if(!book.name.equals("HTCSpeakData"))
-                stublist.add(book);
-            i++;
-        }
-        stublist.add(new Book(i, "FakeBook1.epub", 0.1, false));
-        stublist.add(new Book(i+1, "FakeBook2.epub", 0.1, false));
-        stublist.add(new Book(i+2, "FakeBook3.epub", 0.1, false));
-
-        FileOutputStream fos = context.openFileOutput("Books.dat", Context.MODE_PRIVATE);
-        ObjectOutputStream os = new ObjectOutputStream(fos);
-        os.writeObject(stublist);
-        os.close();
-        fos.close();
-    }
-
-    public String removeExtention(String filePath) {
-        // These first few lines the same as Justin's
-        File f = new File(filePath);
-
-        // if it's a directory, don't remove the extention
-        if (f.isDirectory()) return filePath;
-
-        String name = f.getName();
-
-        // Now we know it's a file - don't need to do any special hidden
-        // checking or contains() checking because of:
-        final int lastPeriodPos = name.lastIndexOf('.');
-        if (lastPeriodPos <= 0)
-        {
-            // No period after first character - return name as it was passed in
-            return filePath;
-        }
-        else
-        {
-            // Remove the last period and everything after it
-            File renamed = new File(f.getParent(), name.substring(0, lastPeriodPos));
-            return renamed.getPath();
-        }
-    }
 
     public static void verifyStoragePermissions(Activity activity) {
         // Check if we have write permission
